@@ -1,9 +1,10 @@
 from collections import namedtuple
 import random
 import numpy as np
+import torch
 
 Transition = namedtuple('Transion', 
-                        ('state', 'action', 'next_state', 'reward'))
+                        ('state', 'action', 'next_state', 'reward', 'nonterminal'))
 
 class ReplayMemory(object):
     def __init__(self, capacity):
@@ -11,14 +12,21 @@ class ReplayMemory(object):
         self.memory = []
         self.position = 0
         
-    def push(self, *args):
+    def append(self, *args):
         if len(self.memory) < self.capacity:
             self.memory.append(None)
         self.memory[self.position] = Transition(*args)
         self.position = (self.position + 1) % self.capacity
         
     def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
+        sampled_transitions = random.sample(self.memory, batch_size)
+        states = torch.stack(list(t.state for t in sampled_transitions), 0)
+        actions = list(t.action for t in sampled_transitions)
+        rewards = torch.stack(list(torch.tensor(t.reward, dtype=torch.float32) for t in sampled_transitions), 0)
+        next_states = torch.stack(list(t.next_state for t in sampled_transitions), 0)
+        nonterminals = torch.stack(list(torch.tensor(t.nonterminal, dtype=torch.float32) for t in sampled_transitions), 0)
+
+        return states, actions, rewards, next_states, nonterminals 
 
     def save(self):
         with open('replay_memory.npy', 'wb') as f:
