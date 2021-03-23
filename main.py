@@ -6,9 +6,9 @@ import argparse
 from datetime import datetime
 import os
 
+import atari_py
 from ale_py import ALEInterface
 import numpy as np 
-import atari_py
 from tqdm import trange
 
 from agent import Agent
@@ -27,6 +27,7 @@ parser.add_argument('--game', type=str, default='space_invaders', choices=atari_
 parser.add_argument('--history-length', type=int, default=4, metavar='T', help='Number of consecutive states processed')
 parser.add_argument('--T-max', type=int, default=int(2e6), metavar='STEPS', help='Number of frames)')
 parser.add_argument('--max-episode-length', type=int, default=int(108e3), metavar='LENGTH', help='Max episode length in game frames (0 to disable)')
+parser.add_argument('--model', type=str, metavar='PARAMS', help='Pretrained model (state dict)')
 parser.add_argument('--memory-capacity', type=int, default=int(1e5), metavar='CAPACITY', help='Experience replay memory capacity')
 parser.add_argument('--replay-frequency', type=int, default=1, metavar='k', help='Frequency of sampling from memory')
 parser.add_argument('--discount', type=float, default=0.99, metavar='γ', help='Discount factor')
