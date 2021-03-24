@@ -41,7 +41,7 @@ class Env():
     if (self.state_data == 'ram'):
       state = self.ale.getRAM()
     else:
-      state = np.concatenate((ale.getRAM(), ale.getTIA()), axis=0)
+      state = np.concatenate((self.ale.getRAM(), self.ale.getTIA()), axis=0)
     return torch.tensor(state, dtype=torch.float32, device=self.device).div_(255)
 
   def _reset_buffer(self):
