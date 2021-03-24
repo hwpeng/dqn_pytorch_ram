@@ -30,16 +30,23 @@ class Env():
     self.state_buffer = deque([], maxlen=args.history_length)
     self.training = True  # Consistent with model training mode
 
+    if (args.state_data == 'ram'):
+      self.state_size = 128
+      self.state_data = 'ram'
+    elif (args.state_data == 'ram_tia'):
+      self.state_size = 128+0x2A
+      self.state_data = 'ram_tia'
+
   def _get_state(self):
-    #  ram_size = self.ale.getRAMSize()
-    #  ram = np.zeros((ram_size))
-    #  self.ale.getRAM(ram)
-    ram = self.ale.getRAM()
-    return torch.tensor(ram, dtype=torch.float32, device=self.device).div_(255)
+    if (self.state_data == 'ram'):
+      state = self.ale.getRAM()
+    else:
+      state = np.concatenate((ale.getRAM(), ale.getTIA()), axis=0)
+    return torch.tensor(state, dtype=torch.float32, device=self.device).div_(255)
 
   def _reset_buffer(self):
     for _ in range(self.window):
-      self.state_buffer.append(torch.zeros(128, device=self.device))
+      self.state_buffer.append(torch.zeros(self.state_size, device=self.device))
 
   def reset(self):
     if self.life_termination:
@@ -63,7 +70,7 @@ class Env():
 
   def step(self, action):
     # Repeat action 4 times, max pool over last 2 frames
-    frame_buffer = torch.zeros(2, 128, device=self.device)
+    frame_buffer = torch.zeros(2, self.state_size, device=self.device)
     reward, done = 0, False
     for t in range(4):
       reward += self.ale.act(self.actions.get(action))

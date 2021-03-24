@@ -1,11 +1,10 @@
-import copy
-import math
 import random
-import time
 import argparse
 from datetime import datetime
 import os
 
+import bz2
+import pickle
 import atari_py
 from ale_py import ALEInterface
 import numpy as np 
@@ -24,12 +23,13 @@ parser = argparse.ArgumentParser(description='DQN RAM')
 parser.add_argument('--id', type=str, default='default', help='Experiment ID')
 parser.add_argument('--seed', type=int, default=123, help='Random seed')
 parser.add_argument('--game', type=str, default='space_invaders', choices=atari_py.list_games(), help='ATARI game')
+parser.add_argument('--state-data', type=str, default='ram', choices=['ram', 'ram_tia'], help='ATARI game')
 parser.add_argument('--history-length', type=int, default=4, metavar='T', help='Number of consecutive states processed')
-parser.add_argument('--T-max', type=int, default=int(2e6), metavar='STEPS', help='Number of frames)')
+parser.add_argument('--T-max', type=int, default=int(3e6), metavar='STEPS', help='Number of frames)')
 parser.add_argument('--max-episode-length', type=int, default=int(108e3), metavar='LENGTH', help='Max episode length in game frames (0 to disable)')
 parser.add_argument('--model', type=str, metavar='PARAMS', help='Pretrained model (state dict)')
-parser.add_argument('--memory-capacity', type=int, default=int(1e5), metavar='CAPACITY', help='Experience replay memory capacity')
-parser.add_argument('--replay-frequency', type=int, default=1, metavar='k', help='Frequency of sampling from memory')
+parser.add_argument('--memory-capacity', type=int, default=int(100e3), metavar='CAPACITY', help='Experience replay memory capacity')
+parser.add_argument('--replay-frequency', type=int, default=4, metavar='k', help='Frequency of sampling from memory')
 parser.add_argument('--discount', type=float, default=0.99, metavar='γ', help='Discount factor')
 parser.add_argument('--target-update', type=int, default=int(2e3), metavar='τ', help='Number of steps after which to update target network')
 parser.add_argument('--reward-clip', type=int, default=1, metavar='VALUE', help='Reward clipping (0 to disable)')
@@ -39,11 +39,11 @@ parser.add_argument('--batch-size', type=int, default=32, metavar='SIZE', help='
 parser.add_argument('--norm-clip', type=float, default=10, metavar='NORM', help='Max L2 norm for gradient clipping')
 parser.add_argument('--learn-start', type=int, default=int(10e3), metavar='STEPS', help='Number of steps before starting training')
 parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
-parser.add_argument('--evaluation-interval', type=int, default=int(100e3), metavar='STEPS', help='Number of training steps between evaluations')
+parser.add_argument('--evaluation-interval', type=int, default=int(50e3), metavar='STEPS', help='Number of training steps between evaluations')
 parser.add_argument('--evaluation-episodes', type=int, default=10, metavar='N', help='Number of evaluation episodes to average over')
 parser.add_argument('--render', action='store_true', help='Display screen (testing only)')
 parser.add_argument('--evaluation-size', type=int, default=500, metavar='N', help='Number of transitions to use for validating Q')
-parser.add_argument('--checkpoint-interval', default=0, help='How often to checkpoint the model, defaults to 0 (never checkpoint)')
+parser.add_argument('--checkpoint-interval', type=int, default=int(50e3), help='How often to checkpoint the model, defaults to 0 (never checkpoint)')
 parser.add_argument('--memory', help='Path to save/load the memory from')
 parser.add_argument('--disable-bzip-memory', action='store_true', help='Don\'t zip the memory file. Not recommended (zipping is a bit slower and much, much smaller)')
 
@@ -56,7 +56,7 @@ args = parser.parse_args()
 print(' ' * 26 + 'Options')
 for k, v in vars(args).items():
   print(' ' * 26 + k + ': ' + str(v))
-results_dir = os.path.join('results', args.id)
+results_dir = os.path.join('results', args.game+'_'+args.state_data+'_'+str(args.seed))
 if not os.path.exists(results_dir):
   os.makedirs(results_dir)
 metrics = {'steps': [], 'rewards': [], 'Qs': [], 'best_avg_reward': -float('inf')}

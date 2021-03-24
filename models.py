@@ -8,8 +8,10 @@ class DQN(nn.Module):
     def __init__(self, args, action_space):
         super(DQN, self).__init__()
         self.action_space = action_space
-
-        self.fc1 = nn.Linear(args.history_length*128, 512)
+        if (args.state_data == 'ram'):
+          self.fc1 = nn.Linear(args.history_length*128, 512)
+        elif (args.state_data == 'ram_tia'):
+          self.fc1 = nn.Linear(args.history_length*(128+0x2A), 512)
         #  self.fc2 = nn.Linear(256, 128)
         #  self.fc3 = nn.Linear(128, 64)
         self.fc3 = nn.Linear(512, 128)
